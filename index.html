@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Répondeur — réponses aux avis clients</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #f3ede0;
+    --ink-dim: #cfc7b4;
+    --bg: #1e2a23;
+    --bg-deep: #16201a;
+    --panel: #253328;
+    --panel-line: #3a4a3d;
+    --gold: #d3a53d;
+    --gold-dim: #b98f34;
+    --bad: #c96a4f;
+    --good: #7fae6f;
+    --radius: 4px;
+    --serif: 'Fraunces', Georgia, serif;
+    --sans: 'Work Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --ink: #1e2a23;
+      --ink-dim: #4a564c;
+      --bg: #f3ede0;
+      --bg-deep: #eae3d2;
+      --panel: #fbf8f0;
+      --panel-line: #ddd4bd;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #f3ede0;
+    --ink-dim: #cfc7b4;
+    --bg: #1e2a23;
+    --bg-deep: #16201a;
+    --panel: #253328;
+    --panel-line: #3a4a3d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  header.top {
+    padding: 22px 0 0;
+  }
+  header.top .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .brand span { color: var(--gold); }
+
+  .hero {
+    padding: 64px 0 40px;
+  }
+  .hero h1 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: clamp(34px, 7vw, 52px);
+    line-height: 1.08;
+    margin: 0 0 20px;
+    max-width: 12ch;
+  }
+  .hero p.lede {
+    font-size: 18px;
+    color: var(--ink-dim);
+    max-width: 46ch;
+    margin: 0 0 28px;
+  }
+  .cta-btn {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--bg-deep);
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 15px;
+    text-decoration: none;
+    padding: 13px 22px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+  }
+  .cta-btn:hover { background: var(--gold-dim); }
+
+  /* demo card */
+  .demo {
+    margin-top: 56px;
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 10px;
+    padding: 22px;
+  }
+  .demo-label {
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin-bottom: 10px;
+  }
+  .demo textarea {
+    width: 100%;
+    min-height: 90px;
+    background: var(--bg-deep);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    padding: 12px;
+    resize: vertical;
+  }
+  .demo textarea:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+  .demo-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .demo-row input {
+    flex: 1;
+    min-width: 140px;
+    background: var(--bg-deep);
+    border: 1px solid var(--panel-line);
+    border-radius: var(--radius);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+  .demo-row input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+  .demo-actions {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .demo-actions button {
+    background: var(--gold);
+    color: var(--bg-deep);
+    border: none;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 15px;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .demo-actions button:disabled { opacity: 0.5; cursor: default; }
+  .demo-status { font-size: 13px; color: var(--ink-dim); }
+
+  .result {
+    margin-top: 18px;
+    border-top: 1px dashed var(--panel-line);
+    padding-top: 16px;
+    display: none;
+  }
+  .result.show { display: block; }
+  .result p {
+    font-size: 15.5px;
+    white-space: pre-wrap;
+  }
+
+  /* how it works */
+  .steps {
+    padding: 64px 0 8px;
+  }
+  .steps h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 26px;
+    margin: 0 0 28px;
+  }
+  .step {
+    display: flex;
+    gap: 16px;
+    padding: 18px 0;
+    border-top: 1px solid var(--panel-line);
+  }
+  .step:last-child { border-bottom: 1px solid var(--panel-line); }
+  .step-n {
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--gold);
+    width: 28px;
+    flex-shrink: 0;
+  }
+  .step h3 {
+    margin: 0 0 4px;
+    font-size: 16.5px;
+    font-weight: 600;
+  }
+  .step p {
+    margin: 0;
+    color: var(--ink-dim);
+    font-size: 15px;
+  }
+
+  .pricing {
+    padding: 56px 0 72px;
+  }
+  .pricing h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 26px;
+    margin: 0 0 24px;
+  }
+  .price-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-line);
+    border-radius: 10px;
+    padding: 26px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .price-card .amount {
+    font-family: var(--serif);
+    font-size: 34px;
+  }
+  .price-card .amount small {
+    font-family: var(--sans);
+    font-size: 14px;
+    color: var(--ink-dim);
+    font-weight: 400;
+  }
+  .price-card p {
+    color: var(--ink-dim);
+    font-size: 14px;
+    max-width: 30ch;
+    margin: 6px 0 0;
+  }
+
+  footer {
+    border-top: 1px solid var(--panel-line);
+    padding: 22px 0 40px;
+    font-size: 13px;
+    color: var(--ink-dim);
+  }
+
+  .paywall {
+    display: none;
+    margin-top: 18px;
+    border-top: 1px dashed var(--panel-line);
+    padding-top: 16px;
+  }
+  .paywall.show { display: block; }
+  .paywall p { font-size: 14.5px; color: var(--ink-dim); margin: 0 0 10px; }
+  .paywall .cta-btn { padding: 10px 16px; font-size: 14px; }
+
+  @media (max-width: 480px) {
+    .demo-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">Répond<span>eur</span></div>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <h1>Une réponse soignée à chaque avis, en quelques secondes.</h1>
+    <p class="lede">Vous gérez un restaurant, un salon, un hôtel. Les avis Google et TripAdvisor s'accumulent, et vous n'avez jamais le temps — ou les mots justes — pour y répondre. Répondeur écrit la réponse à votre place, dans votre ton.</p>
+    <a href="#demo" class="cta-btn">Essayer sur un vrai avis →</a>
+  </div>
+</section>
+
+<section class="wrap" id="demo">
+  <div class="demo">
+    <div class="demo-label">Collez un avis client ci-dessous</div>
+    <textarea id="review" placeholder="Ex : « Service très lent un samedi soir, on a attendu 40 minutes pour être servis. La nourriture était bonne mais l'accueil froid. »"></textarea>
+    <div class="demo-row">
+      <input id="business" type="text" placeholder="Nom de l'établissement (ex : Le Petit Comptoir)">
+      <input id="tone" type="text" placeholder="Ton souhaité (ex : chaleureux et direct)">
+    </div>
+    <div class="demo-actions">
+      <button id="generate">Générer la réponse</button>
+      <span class="demo-status" id="status"></span>
+    </div>
+    <div class="result" id="result">
+      <p id="resultText"></p>
+    </div>
+    <div class="paywall" id="paywall">
+      <p>Vous avez utilisé vos 3 réponses gratuites. Passez à l'abonnement (24€/mois, réponses illimitées) pour continuer.</p>
+      <div class="demo-row">
+        <input id="unlockCode" type="text" placeholder="Vous avez déjà un code d'accès ? Entrez-le ici">
+        <button id="unlockBtn" class="cta-btn" type="button">Débloquer</button>
+      </div>
+      <p class="demo-status" id="unlockStatus"></p>
+    </div>
+  </div>
+</section>
+
+<section class="steps">
+  <div class="wrap">
+    <h2>Comment ça marche</h2>
+    <div class="step">
+      <div class="step-n">1</div>
+      <div>
+        <h3>Vous collez l'avis</h3>
+        <p>Depuis Google, TripAdvisor ou n'importe quelle plateforme — bon ou mauvais avis, peu importe.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">2</div>
+      <div>
+        <h3>L'outil écrit une réponse</h3>
+        <p>Dans le ton de votre établissement, en reconnaissant le problème sans être sur la défensive.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-n">3</div>
+      <div>
+        <h3>Vous publiez, ou vous ajustez</h3>
+        <p>La réponse est à vous. Modifiez un mot si besoin, copiez, collez sur la plateforme.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pricing">
+  <div class="wrap">
+    <h2>Tarif</h2>
+    <div class="price-card">
+      <div>
+        <div class="amount">24€ <small>/ mois, par établissement</small></div>
+        <p>Réponses illimitées. Sans engagement.</p>
+      </div>
+      <a href="#demo" class="cta-btn">Tester avant de payer</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Répondeur — outil de réponse aux avis clients.
+  </div>
+</footer>
+
+<script>
+(function() {
+  const btn = document.getElementById('generate');
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+  const resultText = document.getElementById('resultText');
+  const paywall = document.getElementById('paywall');
+  const unlockBtn = document.getElementById('unlockBtn');
+  const unlockStatus = document.getElementById('unlockStatus');
+
+  const FREE_LIMIT = 3;
+
+  function getFreeUsed() {
+    return Number(localStorage.getItem('repondeur_free_used') || '0');
+  }
+  function setFreeUsed(n) {
+    localStorage.setItem('repondeur_free_used', String(n));
+  }
+  function getUnlockCode() {
+    return localStorage.getItem('repondeur_unlock_code') || '';
+  }
+  function isUnlocked() {
+    return getUnlockCode().length > 0;
+  }
+  function refreshPaywall() {
+    if (!isUnlocked() && getFreeUsed() >= FREE_LIMIT) {
+      paywall.classList.add('show');
+      btn.disabled = true;
+    } else {
+      paywall.classList.remove('show');
+      btn.disabled = false;
+    }
+  }
+  refreshPaywall();
+
+  unlockBtn.addEventListener('click', () => {
+    const code = document.getElementById('unlockCode').value.trim();
+    if (!code) {
+      unlockStatus.textContent = "Entrez un code.";
+      return;
+    }
+    // On stocke le code localement ; il sera revérifié par le serveur à chaque génération.
+    localStorage.setItem('repondeur_unlock_code', code);
+    unlockStatus.textContent = "Code enregistré, vous pouvez continuer.";
+    refreshPaywall();
+  });
+
+  btn.addEventListener('click', async () => {
+    const review = document.getElementById('review').value.trim();
+    const business = document.getElementById('business').value.trim() || "l'établissement";
+    const tone = document.getElementById('tone').value.trim() || "chaleureux et professionnel";
+
+    if (!review) {
+      status.textContent = "Collez d'abord un avis.";
+      return;
+    }
+
+    btn.disabled = true;
+    status.textContent = "Rédaction en cours…";
+    result.classList.remove('show');
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          review, business, tone,
+          code: getUnlockCode(),
+          freeUsed: getFreeUsed(),
+        }),
+      });
+
+      if (res.status === 402) {
+        setFreeUsed(FREE_LIMIT);
+        refreshPaywall();
+        status.textContent = "";
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        status.textContent = data.error || "Une erreur est survenue, réessayez.";
+        return;
+      }
+
+      resultText.textContent = data.answer;
+      result.classList.add('show');
+      status.textContent = "";
+
+      if (!isUnlocked()) {
+        setFreeUsed(getFreeUsed() + 1);
+        refreshPaywall();
+      }
+    } catch (e) {
+      status.textContent = "Une erreur est survenue, réessayez.";
+    } finally {
+      if (!(!isUnlocked() && getFreeUsed() >= FREE_LIMIT)) {
+        btn.disabled = false;
+      }
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
