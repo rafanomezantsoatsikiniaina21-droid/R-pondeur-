@@ -40,8 +40,6 @@ export default async function handler(req, res) {
   }
 
   // --- Vérification du quota gratuit / code de déblocage ---
-  // Le code envoyé (s'il existe) doit correspondre à un des codes valides
-  // définis dans les variables d'environnement Vercel (UNLOCK_CODES, séparés par des virgules).
   const validCodes = (process.env.UNLOCK_CODES || '')
     .split(',')
     .map(c => c.trim())
@@ -50,55 +48,58 @@ export default async function handler(req, res) {
   const isUnlocked = code && validCodes.includes(code);
 
   if (!isUnlocked) {
-    const ip = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
-      .toString()
-      .split(',')[0]
-      .trim();
+    const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
+    const quota = await checkIpQuota(ip);
 
-    const { count } = await checkIpQuota(ip);
-
-    // req.body.freeUsed : compteur côté navigateur (moins fiable, gardé en complément)
-    const freeUsed = Number(req.body.freeUsed) || 0;
-
-    if (count > FREE_LIMIT || freeUsed >= FREE_LIMIT) {
-      return res.status(402).json({ error: 'QUOTA_DEPASSE' });
+    if (quota.configured && quota.count > FREE_LIMIT) {
+      return res.status(403).json({ error: 'quota_depasse' });
     }
   }
 
-  const businessName = (business || "l'établissement").slice(0, 120);
-  const toneWish = (tone || "chaleureux et professionnel").slice(0, 120);
-  const reviewText = review.slice(0, 2000);
+  // --- Appel à l'API Gemini (Google) ---
+  const apiKey = process.env.GEMINI_API_KEY;
 
-  const prompt = `Tu es le gérant de ${businessName}. Un client a laissé l'avis suivant en ligne :\n\n"${reviewText}"\n\nÉcris une réponse publique à cet avis, dans un ton ${toneWish}. Écris la réponse dans la même langue que l'avis ci-dessus (si l'avis est en anglais, réponds en anglais ; s'il est en français, réponds en français ; etc.). 3 à 5 phrases maximum, sans formule d'ouverture générique type "Cher client" ou "Dear customer". Ne mets pas de guillemets autour de la réponse, donne uniquement le texte de la réponse.`;
+  if (!apiKey) {
+    return res.status(500).json({ error: "Clé API Gemini manquante." });
+  }
+
+  const prompt = `Tu es un assistant qui aide un commerçant/restaurateur à répondre aux avis clients.
+Nom de l'établissement : ${business || "l'établissement"}
+Ton souhaité : ${tone || "professionnel et chaleureux"}
+Avis du client à traiter :
+"""
+${review}
+"""
+Rédige une réponse courte (3 à 5 phrases), en français, personnalisée, qui remercie ou répond avec empathie selon le cas, sans être robotique. Ne mets pas de guillemets autour de la réponse.`;
 
   try {
-    const apiRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 400,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-    });
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      }
+    );
 
-    if (!apiRes.ok) {
-      const errText = await apiRes.text();
-      console.error('Erreur API Anthropic:', errText);
-      return res.status(502).json({ error: "Erreur du service de génération." });
+    const data = await geminiRes.json();
+
+    if (!geminiRes.ok) {
+      console.error('Erreur Gemini:', data);
+      return res.status(500).json({ error: "Erreur lors de la génération." });
     }
 
-    const data = await apiRes.json();
-    const textBlock = (data.content || []).find(b => b.type === 'text');
-    const answer = textBlock ? textBlock.text : '';
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    return res.status(200).json({ answer });
-  } catch (e) {
-    console.error(e);
+    if (!reply) {
+      return res.status(500).json({ error: "Réponse vide de l'IA." });
+    }
+
+    return res.status(200).json({ reply: reply.trim() });
+  } catch (err) {
+    console.error('Erreur serveur:', err);
     return res.status(500).json({ error: "Erreur serveur." });
   }
 }
